@@ -9,9 +9,12 @@ const App = () => {
   const [convertFrom, setConvertFrom] = useState('NOK');
   const [convertTo, setConvertTo] = useState('CAD');
   const [loading, setLoading] = useState(false);
-  const API_KEY = '0d18c2faafb1ea44d6a35670'; // ExchangeRate-API key
+  const [errorMessage, setErrorMessage] = useState(''); // State to handle error messages
+  const API_KEY = '0d18c2faafb1ea44d6a35670'; // Your ExchangeRate-API key
 
   const handleAmountChange = (e) => {
+    // Clear previous error message when user starts to type a new amount
+    setErrorMessage('');
     setAmount(e.target.value);
   };
 
@@ -24,6 +27,13 @@ const App = () => {
   };
 
   const convertCurrency = async () => {
+    // Validation: Ensure amount is a number and greater than or equal to 0
+    const numericAmount = parseFloat(amount);
+    if (isNaN(numericAmount) || numericAmount < 0) {
+      setErrorMessage("Please enter a value greater than or equal to $0");
+      return; // Stop execution if validation fails
+    }
+
     setLoading(true);
     try {
       const response = await axios.get(`https://v6.exchangerate-api.com/v6/${API_KEY}/pair/${convertFrom}/${convertTo}/${amount}`);
@@ -31,8 +41,7 @@ const App = () => {
       setExchangeRate(response.data.conversion_rate.toFixed(4));
     } catch (error) {
       console.error('Error fetching the exchange rate:', error);
-      setConvertedAmount('Error fetching the exchange rate');
-      setExchangeRate('');
+      setErrorMessage('Error fetching the exchange rate');
     }
     setLoading(false);
   };
@@ -43,6 +52,7 @@ const App = () => {
       <div className="input-group">
         <label>Enter Amount:</label>
         <input type="number" value={amount} onChange={handleAmountChange} />
+        {errorMessage && <p className="error-message">{errorMessage}</p>}
       </div>
       <div className="conversion-group">
         <div>
@@ -62,13 +72,12 @@ const App = () => {
           </select>
         </div>
       </div>
-      <button onClick={convertCurrency} disabled={!amount}>Convert</button>
+      <button onClick={convertCurrency} disabled={!amount || errorMessage}>Convert</button>
       {loading ? <p>Loading...</p> : convertedAmount && (
         <>
-          <br /> <br />
+          <br /><br />
           <p>Converted Amount: <b>{convertedAmount} {convertTo === 'NOK' ? 'kr' : (convertTo === 'CAD' ? '$CAD' : '$USD')}</b></p>
           <p>Exchange Rate: 1 {convertFrom} = {exchangeRate} {convertTo}</p>
-          
         </>
       )}
     </div>
